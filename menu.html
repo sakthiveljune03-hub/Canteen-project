@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Menu — DRS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--green:#1a7a45;--dark:#0f4f2b;--lg:#e8f7ee;--amber:#f59e0b;--cream:#fdfaf5;--white:#fff;--muted:#6b7280;--border:#e5e7eb;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);min-height:100vh}
+nav{background:var(--dark);padding:14px 5%;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:99;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.bi{width:34px;height:34px;background:var(--amber);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.bn{font-family:'Playfair Display',serif;font-size:20px;color:var(--white);font-weight:900}
+.bn span{color:var(--amber)}
+.nr{display:flex;align-items:center;gap:10px}
+.nr a{color:rgba(255,255,255,.8);text-decoration:none;font-size:13px;font-weight:500;padding:7px 14px;border-radius:50px;transition:all .2s}
+.nr a:hover{background:rgba(255,255,255,.12)}
+.cbtn{background:var(--amber)!important;color:var(--dark)!important;font-weight:700!important}
+.un{color:rgba(255,255,255,.55);font-size:13px}
+.hero{background:linear-gradient(135deg,var(--dark),var(--green));padding:36px 5%;color:white;text-align:center}
+.hero h1{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px;font-weight:900}
+.hero p{color:rgba(255,255,255,.7);font-size:14px}
+.sec{padding:40px 5%}
+.sh{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.si{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--lg)}
+.sh h2{font-family:'Playfair Display',serif;font-size:24px;color:var(--dark)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.card{background:var(--white);border-radius:18px;overflow:hidden;box-shadow:0 2px 15px rgba(0,0,0,.07);transition:all .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.ce{height:120px;display:flex;align-items:center;justify-content:center;font-size:54px;background:var(--lg)}
+.cb{padding:14px}
+.cn{font-size:14px;font-weight:700;margin-bottom:4px}
+.cd{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.cf{display:flex;align-items:center;justify-content:space-between}
+.cp{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--green)}
+.abtn{background:var(--dark);color:white;border:none;padding:7px 16px;border-radius:50px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.abtn:hover{background:var(--green)}
+.abtn.added{background:var(--green);cursor:default}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:white;padding:12px 22px;border-radius:50px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.cfloat{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:13px 28px;border-radius:50px;font-size:14px;font-weight:700;text-decoration:none;display:none;box-shadow:0 8px 30px rgba(15,79,43,.35);z-index:998;transition:all .2s}
+.cfloat:hover{background:var(--green)}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="brand"><div class="bi">🍛</div><div class="bn">D<span>R</span>S</div></a>
+  <div class="nr">
+    <span class="un" id="uname"></span>
+    <a href="tracker.html">Track Order</a>
+    <a href="cart.html" class="cbtn">Cart (<span id="cc">0</span>)</a>
+    <a href="#" onclick="logout()" style="color:rgba(255,255,255,.45);font-size:12px">Logout</a>
+  </div>
+</nav>
+<div class="hero">
+  <h1>College canteen Menu</h1>
+  <p>Authentic Tamil Nadu recipes made fresh every day</p>
+</div>
+<div id="menuWrap"></div>
+<div class="toast" id="toast"></div>
+<a href="cart.html" class="cfloat" id="cfloat">🛒 View Cart →</a>
+
+<script>
+var user = JSON.parse(localStorage.getItem('drs_user') || 'null');
+if (!user) { window.location.href = 'auth.html'; }
+document.getElementById('uname').textContent = user ? user.name : '';
+var cart = JSON.parse(localStorage.getItem('drs_cart') || '[]');
+updateCount();
+
+var MENU = [
+  {id:1, cat:'Meals', bg:'#fff8f0', e:'🍛', n:'Full Meals (Saapadu)', d:'Rice, sambar, rasam, kootu, papad & pickle', p:60},
+  {id:2, cat:'Meals', bg:'#fff0e8', e:'🍲', n:'Sambar Rice', d:'Hot rice with thick homestyle sambar', p:30},
+  {id:3, cat:'Meals', bg:'#f0fff4', e:'🍚', n:'Curd Rice (Thayir Sadam)', d:'Creamy curd rice with mango pickle', p:25},
+  {id:4, cat:'Meals', bg:'#fffbf0', e:'🍋', n:'Lemon Rice (Elumichai Sadam)', d:'Tangy lemon rice with peanuts', p:30},
+  {id:5, cat:'Meals', bg:'#fff0f0', e:'🫙', n:'Tamarind Rice (Puliyodarai)', d:'Spicy tamarind rice — a Tamil classic', p:30},
+  {id:6, cat:'Meals', bg:'#f0f0ff', e:'🥣', n:'Rasam Rice', d:'Light peppery rasam with soft white rice', p:25},
+  {id:7, cat:'Meals', bg:'#fff8e8', e:'🍱', n:'Veg Biryani', d:'Fragrant basmati rice with fresh vegetables', p:70},
+  {id:8, cat:'Snacks', bg:'#fff8f0', e:'🥞', n:'Idli (2 pcs)', d:'Soft steamed rice cakes with sambar & chutney', p:20},
+  {id:9, cat:'Snacks', bg:'#fff0e8', e:'🫓', n:'Masala Dosa', d:'Crispy rice crepe with spiced potato filling', p:35},
+  {id:10, cat:'Snacks', bg:'#f0fff4', e:'🍩', n:'Medhu Vadai', d:'Crispy urad dal fritters with coconut chutney', p:15},
+  {id:11, cat:'Snacks', bg:'#fffbf0', e:'🫔', n:'Masala Vadai', d:'Spiced chana dal fritters — crispy outside', p:15},
+  {id:12, cat:'Snacks', bg:'#f0f0ff', e:'🍯', n:'Pongal', d:'Creamy rice & dal with ghee, pepper & cashews', p:25},
+  {id:13, cat:'Snacks', bg:'#fff0f8', e:'🧆', n:'Bonda', d:'Deep fried crispy potato balls with mint chutney', p:15},
+  {id:14, cat:'Snacks', bg:'#f8fff0', e:'🥙', n:'Bajji (Plate)', d:'Battered and fried vegetables — hot & crispy', p:20},
+  {id:15, cat:'Snacks', bg:'#fff8f8', e:'🥨', n:'Murukku (Pack)', d:'Crunchy spiral rice flour snack', p:10},
+  {id:16, cat:'Juices', bg:'#f0fff4', e:'🥤', n:'Nannari Sherbet', d:'Traditional cooling herbal root drink', p:20},
+  {id:17, cat:'Juices', bg:'#fff8f0', e:'🍹', n:'Sugarcane Juice', d:'Fresh pressed sweet sugarcane with lemon', p:25},
+  {id:18, cat:'Juices', bg:'#f0f8ff', e:'🥥', n:'Tender Coconut (Elaneer)', d:'Fresh tender coconut water — cool & natural', p:40},
+  {id:19, cat:'Juices', bg:'#f8fff8', e:'🥛', n:'Buttermilk (Mor)', d:'Spiced yogurt cooling drink with curry leaves', p:15},
+  {id:20, cat:'Juices', bg:'#fff0f8', e:'🌹', n:'Rose Milk', d:'Sweet chilled rose flavoured milk', p:20},
+  {id:21, cat:'Juices', bg:'#fff8e8', e:'☕', n:'Filter Coffee', d:'Traditional South Indian decoction coffee', p:20},
+  {id:22, cat:'Juices', bg:'#fff0e8', e:'🍵', n:'Masala Tea', d:'Spiced ginger cardamom tea — hot & refreshing', p:15}
+];
+
+var catIcons = { Meals:'🍛', Snacks:'🍿', Juices:'🥤' };
+var cats = {};
+MENU.forEach(function(item){ if(!cats[item.cat]) cats[item.cat]=[]; cats[item.cat].push(item); });
+
+var html = '';
+Object.keys(cats).forEach(function(cat){
+  html += '<div class="sec"><div class="sh"><div class="si">'+catIcons[cat]+'</div><h2>'+cat+'</h2></div><div class="grid">';
+  cats[cat].forEach(function(item){
+    var inCart = cart.find(function(c){ return c.id===item.id; });
+    html += '<div class="card"><div class="ce" style="background:'+item.bg+'">'+item.e+'</div><div class="cb"><div class="cn">'+item.n+'</div><div class="cd">'+item.d+'</div><div class="cf"><span class="cp">₹'+item.p+'</span><button class="abtn'+(inCart?' added':'')+'" id="btn'+item.id+'" onclick="addToCart('+item.id+')">'+(inCart?'Added ✓':'Add to Cart')+'</button></div></div></div>';
+  });
+  html += '</div></div>';
+});
+document.getElementById('menuWrap').innerHTML = html;
+
+function addToCart(id){
+  var item = MENU.find(function(x){ return x.id===id; });
+  var ex = cart.find(function(x){ return x.id===id; });
+  if (ex) { ex.qty++; } else { cart.push({id:item.id,name:item.n,price:item.p,emoji:item.e,qty:1}); }
+  localStorage.setItem('drs_cart', JSON.stringify(cart));
+  updateCount();
+  var btn = document.getElementById('btn'+id);
+  btn.textContent = 'Added ✓'; btn.classList.add('added');
+  showToast(item.n + ' added to cart!');
+}
+function updateCount(){
+  var t = cart.reduce(function(s,x){ return s+x.qty; }, 0);
+  document.getElementById('cc').textContent = t;
+  document.getElementById('cfloat').style.display = t > 0 ? 'block' : 'none';
+}
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },2200); }
+function logout(){ localStorage.removeItem('drs_user'); window.location.href='auth.html'; }
+</script>
+</body>
+</html>

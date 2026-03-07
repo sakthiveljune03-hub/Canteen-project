@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Admin — DRS</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--green:#1a7a45;--dark:#0f4f2b;--lg:#e8f7ee;--amber:#f59e0b;--cream:#fdfaf5;--white:#fff;--muted:#6b7280;--border:#e5e7eb;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:#f0ece6;min-height:100vh}
+nav{background:var(--dark);padding:14px 5%;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.bi{width:34px;height:34px;background:var(--amber);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.bn{font-family:'Playfair Display',serif;font-size:20px;color:var(--white);font-weight:900}
+.bn span{color:var(--amber)}
+.nr{display:flex;align-items:center;gap:10px}
+.live{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:50px;font-size:12px;color:rgba(255,255,255,.85);font-weight:600}
+.dot{width:8px;height:8px;background:#4ade80;border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.atag{background:var(--amber);color:var(--dark);padding:4px 12px;border-radius:50px;font-size:11px;font-weight:700}
+.lbtn{color:rgba(255,255,255,.55);font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit}
+/* NEW ORDER ALERT */
+.alert{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:14px 24px;border-radius:50px;font-size:14px;font-weight:700;z-index:999;display:none;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.2);animation:slideDown .3s ease;white-space:nowrap}
+@keyframes slideDown{from{transform:translateX(-50%) translateY(-40px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.alert-close{background:rgba(255,255,255,.2);border:none;color:white;padding:3px 10px;border-radius:50px;font-size:12px;font-weight:700;cursor:pointer;margin-left:8px}
+.pg{padding:28px 5%}
+.pgt{font-family:'Playfair Display',serif;font-size:26px;color:var(--dark);margin-bottom:4px;font-weight:700}
+.pgs{color:var(--muted);font-size:13px;margin-bottom:22px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px;margin-bottom:24px}
+.sc{background:var(--white);border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.05);border-left:4px solid var(--dark)}
+.sn{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--dark)}
+.sl{font-size:12px;color:var(--muted);margin-top:4px}
+.tabs{display:flex;border-bottom:2px solid #ddd;margin-bottom:20px}
+.tab{padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;border:none;background:none;color:#aaa;border-bottom:3px solid transparent;margin-bottom:-2px;font-family:inherit}
+.tab.on{color:var(--dark);border-bottom-color:var(--dark)}
+.tp{display:none}
+.tp.on{display:block}
+/* ORDERS TABLE */
+.ow{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.ow table{width:100%;border-collapse:collapse}
+.ow th{background:var(--dark);color:white;padding:12px 14px;text-align:left;font-size:12px;font-weight:600}
+.ow td{padding:12px 14px;font-size:13px;border-bottom:1px solid #f5ede5;color:#333;vertical-align:middle}
+.ow tr:last-child td{border-bottom:none}
+.ow tr.new-row td{background:#fffbf0}
+.ss{padding:6px 10px;border-radius:8px;border:1px solid #ddd;font-size:12px;font-family:inherit;cursor:pointer;background:white}
+.badge{padding:4px 10px;border-radius:50px;font-size:11px;font-weight:700;display:inline-block}
+.bPlaced{background:#fee2e2;color:#b91c1c}
+.bConfirmed{background:#e0e7ff;color:#3730a3}
+.bPreparing{background:#fff7ed;color:#c2410c}
+.bReady{background:var(--lg);color:#166534}
+.bCompleted{background:#f0fdf4;color:#15803d}
+/* MENU GRID */
+.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:12px}
+.mc{background:var(--white);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;align-items:center;gap:12px}
+.me{font-size:28px;width:40px;text-align:center;flex-shrink:0}
+.mi{flex:1;min-width:0}
+.mn{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mp{font-size:12px;color:var(--amber);font-weight:600}
+.mcat{font-size:11px;color:#aaa}
+.atb{padding:5px 10px;border-radius:50px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.a1{background:var(--lg);color:var(--green)}.a0{background:#fee2e2;color:#b91c1c}
+.none{text-align:center;padding:50px;color:var(--muted);font-size:15px}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:white;padding:12px 22px;border-radius:50px;font-size:13px;font-weight:600;display:none;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:998;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- NEW ORDER ALERT BANNER -->
+<div class="alert" id="newAlert">
+  🔔 New order received!
+  <button class="alert-close" onclick="closeAlert()">View ↓</button>
+</div>
+
+<nav>
+  <a href="index.html" class="brand"><div class="bi">🍛</div><div class="bn">D<span>R</span>S</div></a>
+  <div class="nr">
+    <div class="live"><div class="dot"></div> LIVE</div>
+    <span class="atag">ADMIN</span>
+    <button class="lbtn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="pg">
+  <div class="pgt">Admin Dashboard</div>
+  <div class="pgs">Orders appear live — no refresh needed!</div>
+  <div class="stats" id="stats"></div>
+  <div class="tabs">
+    <button class="tab on" onclick="sw(this,'ot')">🧾 Orders</button>
+    <button class="tab" onclick="sw(this,'mt')">🍽️ Menu Items</button>
+  </div>
+  <div class="tp on" id="ot"><div id="ordersContent"><div class="none">Loading orders...</div></div></div>
+  <div class="tp" id="mt"><div id="menuContent"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PASTE YOUR FIREBASE CONFIG HERE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDNcfNUTbuq6rkH8qKDQyH-OGDEyGZivyM",
+  authDomain: "drs-canteen.firebaseapp.com",
+  projectId: "drs-canteen",
+  storageBucket: "drs-canteen.firebasestorage.app",
+  messagingSenderId: "44103188304",
+  appId: "1:44103188304:web:e383bc8c02f4baec923655",
+  measurementId: "G-6QS5KJN18Y"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+
+var user = JSON.parse(localStorage.getItem('drs_user') || 'null');
+if (!user || user.role !== 'admin') { window.location.href = 'auth.html'; }
+function logout(){ localStorage.removeItem('drs_user'); window.location.href = 'auth.html'; }
+function sw(el,tab){
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  document.querySelectorAll('.tp').forEach(function(p){ p.classList.remove('on'); });
+  el.classList.add('on'); document.getElementById(tab).classList.add('on');
+}
+
+var MENU = [
+  {id:1,cat:'Meals',e:'🍛',n:'Full Meals (Saapadu)',p:60},
+  {id:2,cat:'Meals',e:'🍲',n:'Sambar Rice',p:30},
+  {id:3,cat:'Meals',e:'🍚',n:'Curd Rice (Thayir Sadam)',p:25},
+  {id:4,cat:'Meals',e:'🍋',n:'Lemon Rice (Elumichai Sadam)',p:30},
+  {id:5,cat:'Meals',e:'🫙',n:'Tamarind Rice (Puliyodarai)',p:30},
+  {id:6,cat:'Meals',e:'🥣',n:'Rasam Rice',p:25},
+  {id:7,cat:'Meals',e:'🍱',n:'Veg Biryani',p:70},
+  {id:8,cat:'Snacks',e:'🥞',n:'Idli (2 pcs)',p:20},
+  {id:9,cat:'Snacks',e:'🫓',n:'Masala Dosa',p:35},
+  {id:10,cat:'Snacks',e:'🍩',n:'Medhu Vadai',p:15},
+  {id:11,cat:'Snacks',e:'🫔',n:'Masala Vadai',p:15},
+  {id:12,cat:'Snacks',e:'🍯',n:'Pongal',p:25},
+  {id:13,cat:'Snacks',e:'🧆',n:'Bonda',p:15},
+  {id:14,cat:'Snacks',e:'🥙',n:'Bajji (Plate)',p:20},
+  {id:15,cat:'Snacks',e:'🥨',n:'Murukku (Pack)',p:10},
+  {id:16,cat:'Juices',e:'🥤',n:'Nannari Sherbet',p:20},
+  {id:17,cat:'Juices',e:'🍹',n:'Sugarcane Juice',p:25},
+  {id:18,cat:'Juices',e:'🥥',n:'Tender Coconut (Elaneer)',p:40},
+  {id:19,cat:'Juices',e:'🥛',n:'Buttermilk (Mor)',p:15},
+  {id:20,cat:'Juices',e:'🌹',n:'Rose Milk',p:20},
+  {id:21,cat:'Juices',e:'☕',n:'Filter Coffee',p:20},
+  {id:22,cat:'Juices',e:'🍵',n:'Masala Tea',p:15}
+];
+var avail = JSON.parse(localStorage.getItem('drs_avail') || '{}');
+var allOrders = {};
+var orderCount = 0;
+
+// ══ LIVE FIREBASE LISTENER — orders appear instantly! ══
+db.ref('orders').on('value', function(snap){
+  allOrders = {};
+  var count = 0, revenue = 0, active = 0;
+  if (snap.exists()) {
+    snap.forEach(function(child){ allOrders[child.key] = child.val(); count++; });
+    Object.values(allOrders).forEach(function(o){ revenue+=o.total; if(o.status!=='Completed') active++; });
+  }
+  // Show new order alert
+  if (count > orderCount && orderCount > 0) {
+    document.getElementById('newAlert').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('newAlert').style.display='none'; }, 6000);
+  }
+  orderCount = count;
+  // Update stats
+  document.getElementById('stats').innerHTML =
+    '<div class="sc"><div class="sn">'+count+'</div><div class="sl">Total Orders</div></div>' +
+    '<div class="sc" style="border-color:var(--amber)"><div class="sn" style="color:var(--amber)">'+active+'</div><div class="sl">Active Orders</div></div>' +
+    '<div class="sc" style="border-color:var(--green)"><div class="sn" style="color:var(--green)">₹'+revenue+'</div><div class="sl">Total Revenue</div></div>' +
+    '<div class="sc"><div class="sn">22</div><div class="sl">Menu Items</div></div>';
+  // Render orders table
+  renderOrders();
+});
+
+function renderOrders(){
+  var el = document.getElementById('ordersContent');
+  var orders = Object.values(allOrders).sort(function(a,b){ return b.timestamp-a.timestamp; });
+  if (!orders.length) { el.innerHTML='<div class="none">No orders yet — waiting for customers!</div>'; return; }
+  var STATUS = ['Placed','Confirmed','Preparing','Ready','Completed'];
+  var rows = orders.map(function(o){
+    var opts = STATUS.map(function(s){ return '<option value="'+s+'"'+(o.status===s?' selected':'')+'>'+s+'</option>'; }).join('');
+    return '<tr><td><strong>'+o.code+'</strong></td><td>'+o.userName+'</td>' +
+      '<td>'+o.items.length+' items</td><td>₹'+o.total+'</td>' +
+      '<td><span class="badge b'+o.status+'">'+o.status+'</span></td>' +
+      '<td><select class="ss" onchange="updateStatus(\''+o.code+'\',this.value)">'+opts+'</select></td>' +
+      '<td style="font-size:11px;color:#aaa">'+o.time+'</td></tr>';
+  }).join('');
+  el.innerHTML = '<div class="ow"><table><thead><tr><th>Code</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Update Status</th><th>Time</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function updateStatus(code, status){
+  // Update in Firebase — user's tracker page updates instantly!
+  db.ref('orders/'+code+'/status').set(status, function(){
+    showToast('✅ '+code+' → '+status);
+  });
+}
+
+function closeAlert(){
+  document.getElementById('newAlert').style.display = 'none';
+  document.querySelector('.tab.on') && document.querySelector('.tab').click();
+}
+
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(function(){ t.style.display='none'; }, 2500);
+}
+
+// Render menu items
+function renderMenu(){
+  var html = MENU.map(function(item){
+    var av = avail[item.id] !== undefined ? avail[item.id] : true;
+    return '<div class="mc"><div class="me">'+item.e+'</div><div class="mi"><div class="mn">'+item.n+'</div><div class="mp">₹'+item.p+'</div><div class="mcat">'+item.cat+'</div></div><button class="atb '+(av?'a1':'a0')+'" onclick="tog('+item.id+')">'+(av?'Available':'Unavail.')+'</button></div>';
+  }).join('');
+  document.getElementById('menuContent').innerHTML = '<div class="mg">'+html+'</div>';
+}
+function tog(id){ var c=avail[id]!==undefined?avail[id]:true; avail[id]=!c; localStorage.setItem('drs_avail',JSON.stringify(avail)); renderMenu(); }
+renderMenu();
+</script>
+</body>
+</html>
