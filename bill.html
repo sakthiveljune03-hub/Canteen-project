@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Bill — DMI Smart Canteen</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --green: #1a7a45;
+      --dark: #0b3d2e;
+      --darker: #072419;
+      --lg: #e6f4ec;
+      --amber: #f59e0b;
+      --cream: #faf8f4;
+      --white: #fff;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --text: #111827;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh
+    }
+
+    nav {
+      background: var(--darker);
+      padding: 0 5%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 66px;
+      box-shadow: 0 2px 20px rgba(0, 0, 0, .2)
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none
+    }
+
+    .nav-logo {
+      width: 38px;
+      height: 38px;
+      background: var(--amber);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px
+    }
+
+    .nav-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      color: #fff;
+      font-weight: 900
+    }
+
+    .nav-name em {
+      color: var(--amber);
+      font-style: normal
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px
+    }
+
+    .nav-btn {
+      color: rgba(255, 255, 255, .8);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 50px;
+      transition: .2s;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: inherit
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, .1)
+    }
+
+    .nav-btn-print {
+      background: var(--amber) !important;
+      color: var(--dark) !important;
+      font-weight: 700 !important
+    }
+
+    .page {
+      padding: 32px 5% 60px;
+      max-width: 640px;
+      margin: 0 auto
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 80px 0
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 14px
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* Bill receipt */
+    .bill {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, .08);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      animation: fadeUp .4s ease
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* Bill header */
+    .bill-header {
+      background: linear-gradient(135deg, var(--darker), var(--dark));
+      padding: 32px;
+      text-align: center;
+      color: #fff;
+      position: relative;
+      overflow: hidden
+    }
+
+    .bill-header::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 255, 255, .04);
+      border-radius: 50%;
+      top: -80px;
+      right: -50px
+    }
+
+    .bh-logo {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block
+    }
+
+    .bh-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 4px
+    }
+
+    .bh-name em {
+      color: var(--amber);
+      font-style: normal
+    }
+
+    .bh-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .5);
+      margin-bottom: 24px
+    }
+
+    .bh-order-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 3px;
+      background: rgba(255, 255, 255, .08);
+      padding: 12px 24px;
+      border-radius: 14px;
+      display: inline-block;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, .15)
+    }
+
+    .bh-status {
+      display: inline-block;
+      padding: 6px 18px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--amber);
+      color: var(--dark)
+    }
+
+    /* Bill body */
+    .bill-body {
+      padding: 28px
+    }
+
+    .bill-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border)
+    }
+
+    .bm-item label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .bm-item span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dark)
+    }
+
+    /* Items table */
+    .items-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 16px
+    }
+
+    .items-header {
+      display: flex;
+      background: var(--cream);
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 8px
+    }
+
+    .ih-name {
+      flex: 1;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .ih-qty {
+      width: 50px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .ih-price {
+      width: 60px;
+      text-align: right;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .ih-total {
+      width: 70px;
+      text-align: right;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px
+    }
+
+    .bill-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid #f5f5f5
+    }
+
+    .bill-item:last-child {
+      border-bottom: none
+    }
+
+    .bi-emoji {
+      font-size: 22px;
+      margin-right: 10px;
+      flex-shrink: 0
+    }
+
+    .bi-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--dark)
+    }
+
+    .bi-qty {
+      width: 50px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted)
+    }
+
+    .bi-price {
+      width: 60px;
+      text-align: right;
+      font-size: 13px;
+      color: var(--muted)
+    }
+
+    .bi-total {
+      width: 70px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--dark);
+      font-family: 'DM Mono', monospace
+    }
+
+    /* Totals */
+    .bill-totals {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid var(--border)
+    }
+
+    .bt-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: var(--muted)
+    }
+
+    .bt-row.discount {
+      color: var(--green);
+      font-weight: 600
+    }
+
+    .bt-divider {
+      height: 2px;
+      background: var(--border);
+      margin: 14px 0
+    }
+
+    .bt-grand {
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .bt-grand-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--dark)
+    }
+
+    .bt-grand-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--dark)
+    }
+
+    /* Payment */
+    .payment-info {
+      margin-top: 24px;
+      padding: 18px;
+      background: var(--cream);
+      border-radius: 14px;
+      border: 1px solid var(--border)
+    }
+
+    .pi-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 12px
+    }
+
+    .pi-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px
+    }
+
+    .pi-val {
+      font-weight: 600;
+      color: var(--dark)
+    }
+
+    .pay-chip {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 50px
+    }
+
+    .pay-chip-upi {
+      background: #dcfce7;
+      color: #16a34a
+    }
+
+    .pay-chip-cod {
+      background: #fef3c7;
+      color: #d97706
+    }
+
+    /* Bill footer */
+    .bill-footer {
+      border-top: 2px dashed var(--border);
+      margin-top: 28px;
+      padding-top: 24px;
+      text-align: center
+    }
+
+    .bf-thank {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 6px
+    }
+
+    .bf-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 18px
+    }
+
+    .bf-barcode {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #ccc;
+      letter-spacing: 3px;
+      background: #f8f8f8;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .bf-copy {
+      font-size: 12px;
+      color: #bbb
+    }
+
+    /* Action buttons */
+    .bill-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px
+    }
+
+    .bill-act-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      border: none;
+      transition: all .25s;
+      text-decoration: none;
+      text-align: center;
+      display: block
+    }
+
+    .bill-act-primary {
+      background: var(--dark);
+      color: #fff
+    }
+
+    .bill-act-primary:hover {
+      background: var(--green)
+    }
+
+    .bill-act-secondary {
+      background: #fff;
+      color: var(--dark);
+      border: 2px solid var(--border)
+    }
+
+    .bill-act-secondary:hover {
+      border-color: var(--dark)
+    }
+
+    .bill-act-print {
+      background: var(--amber);
+      color: var(--dark)
+    }
+
+    .bill-act-print:hover {
+      background: #d97706
+    }
+
+    @media print {
+
+      nav,
+      .bill-actions {
+        display: none !important
+      }
+
+      body {
+        background: #fff
+      }
+
+      .page {
+        max-width: 100%;
+        padding: 0
+      }
+
+      .bill {
+        border-radius: 0;
+        box-shadow: none
+      }
+    }
+
+    @media(max-width:500px) {
+      .bill-meta {
+        grid-template-columns: 1fr
+      }
+
+      .bill-actions {
+        flex-direction: column
+      }
+
+      .ih-price,
+      .bi-price {
+        display: none
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <div class="nav-logo">🍛</div>
+      <div class="nav-name">D<em>M</em>I</div>
+    </a>
+    <div class="nav-actions">
+      <a href="tracker.html" class="nav-btn">Track Order</a>
+      <button class="nav-btn nav-btn-print" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div id="billWrap">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p style="color:var(--muted)">Loading your bill...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNcfNUTbuq6rkH8qKDQyH-OGDEyGZivyM",
+      authDomain: "drs-canteen.firebaseapp.com",
+      projectId: "drs-canteen",
+      storageBucket: "drs-canteen.firebasestorage.app",
+      messagingSenderId: "44103188304",
+      appId: "1:44103188304:web:e383bc8c02f4baec923655",
+      measurementId: "G-6QS5KJN18Y",
+      databaseURL: "https://drs-canteen-default-rtdb.firebaseio.com"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    var db = firebase.database();
+
+    var code = new URLSearchParams(window.location.search).get('code') || localStorage.getItem('drs_last_order') || '';
+    if (!code) {
+      document.getElementById('billWrap').innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:52px;margin-bottom:14px">🧾</div><h2 style="font-family:Outfit,sans-serif;font-size:22px;color:var(--dark)">No bill found</h2><p style="color:var(--muted);margin:10px 0 24px">We could not find any order to show.</p><a href="menu.html" style="background:var(--dark);color:#fff;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700;font-family:Outfit,sans-serif">Browse Menu</a></div>';
+    } else {
+      db.ref('orders/' + code).once('value', function (snap) {
+        if (!snap.exists()) {
+          document.getElementById('billWrap').innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:52px;margin-bottom:14px">❓</div><h2 style="font-family:Outfit,sans-serif">Order not found</h2><p style="color:var(--muted);margin-top:10px">Code: ' + code + '</p></div>';
+          return;
+        }
+        renderBill(snap.val());
+      });
+    }
+
+    function renderBill(o) {
+      var isUPI = o.payMethod === 'upi' || o.payMethod === 'paid' || o.payMethod === 'razorpay';
+      var isCOD = o.payMethod === 'cod';
+      var payChip = isUPI ? '<span class="pay-chip pay-chip-upi">✓ Paid via UPI</span>'
+        : isCOD ? '<span class="pay-chip pay-chip-cod">💵 Cash on Delivery</span>'
+          : '<span class="pay-chip" style="background:#f3f4f6;color:#6b7280">Pending</span>';
+
+      var itemsHtml = (o.items || []).map(function (it) {
+        var visual = it.img ? '<img src="' + it.img + '" style="width:24px;height:24px;border-radius:4px;object-fit:cover;margin-right:10px;flex-shrink:0"/>' : '<span class="bi-emoji">' + it.emoji + '</span>';
+        return '<div class="bill-item">'
+          + visual
+          + '<div class="bi-name">' + it.name + '</div>'
+          + '<div class="bi-qty">' + it.qty + '</div>'
+          + '<div class="bi-price">₹' + it.price + '</div>'
+          + '<div class="bi-total">₹' + (it.price * it.qty) + '</div>'
+          + '</div>';
+      }).join('');
+
+      var discHtml = (o.discount && o.discount > 0)
+        ? '<div class="bt-row discount"><span>🏷️ Coupon Discount</span><span>−₹' + o.discount + '</span></div>'
+        : '';
+
+      document.getElementById('billWrap').innerHTML =
+        '<div class="bill">'
+        + '<div class="bill-header">'
+        + '<span class="bh-logo">🍛</span>'
+        + '<div class="bh-name">D<em>M</em>I Canteen</div>'
+        + '<div class="bh-sub">DMI College of Engineering & Technology</div>'
+        + '<div class="bh-order-code">' + (o.code || code) + '</div><br/>'
+        + '<span class="bh-status">' + o.status + '</span>'
+        + '</div>'
+        + '<div class="bill-body">'
+        + '<div class="bill-meta">'
+        + '<div class="bm-item"><label>Customer</label><span>' + (o.userName || 'Guest') + '</span></div>'
+        + '<div class="bm-item"><label>Email</label><span style="font-size:12px">' + (o.userEmail || '—') + '</span></div>'
+        + '<div class="bm-item"><label>Order Date</label><span style="font-size:12px">' + (o.time || '—') + '</span></div>'
+        + '<div class="bm-item"><label>Payment</label>' + payChip + '</div>'
+        + '</div>'
+        + '<div class="items-title">Order Items</div>'
+        + '<div class="items-header">'
+        + '<span class="ih-name">Item</span>'
+        + '<span class="ih-qty">Qty</span>'
+        + '<span class="ih-price">Rate</span>'
+        + '<span class="ih-total">Amount</span>'
+        + '</div>'
+        + '<div style="border:1px solid var(--border);border-radius:14px;overflow:hidden">'
+        + itemsHtml
+        + '</div>'
+        + '<div class="bill-totals">'
+        + '<div class="bt-row"><span>Subtotal</span><span>₹' + (o.subtotal || o.total || 0) + '</span></div>'
+        + discHtml
+        + '<div class="bt-divider"></div>'
+        + '<div class="bt-grand"><div class="bt-grand-label">Grand Total</div><div class="bt-grand-val">₹' + (o.total || 0) + '</div></div>'
+        + '</div>'
+        + '<div class="payment-info">'
+        + '<div class="pi-title">💳 Payment Details</div>'
+        + '<div class="pi-row"><span>Method</span><span class="pi-val">' + payChip + '</span></div>'
+        + (o.paymentId ? '<div class="pi-row"><span>Transaction ID</span><span class="pi-val" style="font-size:11px;font-family:DM Mono">' + o.paymentId.slice(0, 18) + '...</span></div>' : '')
+        + (!isUPI && o.payMethod === 'upi' ? '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);text-align:center"><p style="font-size:12px;color:var(--muted);margin-bottom:10px">Your payment is pending</p><a href="upi://pay?pa=dmice@upi&pn=DMI+Canteen&am=' + o.total + '&cu=INR&tn=Order+' + o.code + '" class="bill-act-btn bill-act-primary" style="padding:10px">⚡ Pay Now ₹' + o.total + '</a></div>' : '')
+        + '</div>'
+        + '<div class="bill-footer">'
+        + '<div class="bf-thank">Thank You! 🙏</div>'
+        + '<div class="bf-sub">Come again for more authentic Tamil food</div>'
+        + '<div class="bf-copy">© 2025 DMI Smart Canteen</div>'
+        + '</div>'
+        + '<div class="bill-actions">'
+        + '<a href="tracker.html?code=' + (o.code || code) + '" class="bill-act-btn bill-act-secondary">📍 Track Order</a>'
+        + '<button class="bill-act-btn bill-act-print" onclick="window.print()">🖨️ Print Bill</button>'
+        + '<a href="menu.html" class="bill-act-btn bill-act-primary">🍽 Order Again</a>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+  </script>
+</body>
+
+</html>

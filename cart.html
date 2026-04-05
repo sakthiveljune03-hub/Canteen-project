@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Cart — DMI Smart Canteen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    :root{
+      --green:#1a7a45;--dark:#0b3d2e;--darker:#072419;
+      --lg:#e6f4ec;--amber:#f59e0b;--amber2:#fbbf24;
+      --cream:#faf8f4;--white:#fff;--muted:#6b7280;
+      --border:#e5e7eb;--text:#111827;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+
+    nav{background:var(--darker);padding:0 5%;display:flex;align-items:center;justify-content:space-between;height:66px;box-shadow:0 2px 20px rgba(0,0,0,.2)}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .nav-logo{width:38px;height:38px;background:var(--amber);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+    .nav-name{font-family:'Outfit',sans-serif;font-size:22px;color:#fff;font-weight:900}
+    .nav-name em{color:var(--amber);font-style:normal}
+    .nav-back{color:rgba(255,255,255,.75);text-decoration:none;font-size:14px;font-weight:500;padding:8px 16px;border-radius:50px;transition:.2s}
+    .nav-back:hover{background:rgba(255,255,255,.1)}
+
+    .page{padding:32px 5% 100px;max-width:1000px;margin:0 auto}
+    .page-title{font-family:'Outfit',sans-serif;font-size:30px;font-weight:800;color:var(--dark);margin-bottom:28px;letter-spacing:-.5px}
+
+    .cart-layout{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+
+    /* Cart Items Box */
+    .cart-box{background:#fff;border-radius:22px;padding:24px;border:1px solid var(--border);box-shadow:0 2px 16px rgba(0,0,0,.05)}
+    .cart-box-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--dark);margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border)}
+    .cart-item{display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #f5f5f5}
+    .cart-item:last-child{border-bottom:none}
+    .ci-emoji{font-size:36px;width:50px;text-align:center;flex-shrink:0}
+    .ci-info{flex:1}
+    .ci-name{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:4px}
+    .ci-price{font-size:12px;color:var(--amber);font-weight:600}
+    .ci-controls{display:flex;align-items:center;gap:12px}
+    .qty-btn{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:inherit}
+    .qty-btn:hover{background:var(--dark);color:#fff;border-color:var(--dark)}
+    .qty-num{font-size:16px;font-weight:700;min-width:24px;text-align:center;color:var(--dark)}
+    .ci-line-total{font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;color:var(--dark);min-width:52px;text-align:right}
+    .ci-rm{background:none;border:none;color:#d1d5db;font-size:20px;cursor:pointer;padding:4px;border-radius:8px;transition:.2s;line-height:1}
+    .ci-rm:hover{color:#ef4444;background:#fef2f2}
+
+    /* Summary Box */
+    .summary-box{background:#fff;border-radius:22px;padding:24px;border:1px solid var(--border);box-shadow:0 2px 16px rgba(0,0,0,.05);position:sticky;top:90px}
+    .summary-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--dark);margin-bottom:20px}
+    .summary-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px;color:var(--muted)}
+    .summary-row.discount{color:var(--green);font-weight:600}
+    .summary-divider{height:2px;background:var(--border);margin:14px 0}
+    .summary-total{display:flex;justify-content:space-between;font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--dark)}
+
+    /* Coupon */
+    .coupon-section{margin:20px 0}
+    .coupon-label{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:10px;display:block}
+    .coupon-row{display:flex;gap:8px}
+    .coupon-input{
+      flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:11px;
+      font-size:13px;font-family:'DM Mono',monospace;text-transform:uppercase;
+      background:var(--cream);transition:.2s;
+    }
+    .coupon-input:focus{outline:none;border-color:var(--green)}
+    .coupon-btn{padding:11px 18px;background:var(--dark);color:#fff;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s}
+    .coupon-btn:hover{background:var(--green)}
+    .coupon-msg{font-size:12px;margin-top:8px;font-weight:500}
+    .coupon-ok{color:var(--green)}.coupon-err{color:#ef4444}
+    .coupon-hint{font-size:11px;color:#b0b8c1;margin-top:5px}
+    .coupon-tag{display:inline-flex;align-items:center;gap:6px;background:var(--lg);color:var(--green);padding:5px 12px;border-radius:50px;font-size:12px;font-weight:700;border:1px solid rgba(26,122,69,0.2);margin-top:8px}
+    .coupon-tag button{background:none;border:none;cursor:pointer;color:var(--green);font-size:14px;line-height:1;padding:0 2px}
+
+    /* Payment */
+    .pay-section{margin-top:8px}
+    .pay-label{font-size:13px;font-weight:600;color:var(--dark);margin-bottom:12px;display:block}
+    .pay-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .pay-opt{border:2px solid var(--border);border-radius:13px;padding:13px;text-align:center;cursor:pointer;transition:all .25s}
+    .pay-opt:hover{border-color:var(--dark)}
+    .pay-opt.selected{border-color:var(--green);background:var(--lg)}
+    .pay-opt-icon{font-size:22px;margin-bottom:6px}
+    .pay-opt-label{font-size:12px;font-weight:700;color:var(--dark)}
+    .pay-opt-sub{font-size:10px;color:var(--muted)}
+
+    .place-btn{
+      width:100%;padding:16px;background:var(--green);color:#fff;
+      border:none;border-radius:14px;font-size:16px;font-weight:700;
+      cursor:pointer;font-family:'Outfit',sans-serif;transition:all .25s;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .place-btn:hover{background:var(--dark);box-shadow:0 8px 24px rgba(11,61,46,.3)}
+    .place-btn:disabled{background:#9ca3af;cursor:not-allowed;box-shadow:none}
+
+    /* Empty state */
+    .empty{text-align:center;padding:80px 20px;background:#fff;border-radius:22px;border:1px solid var(--border)}
+    .empty-emoji{font-size:60px;margin-bottom:16px}
+    .empty h2{font-family:'Outfit',sans-serif;font-size:22px;color:var(--dark);margin-bottom:10px}
+    .empty p{color:var(--muted);font-size:14px;margin-bottom:24px}
+    .empty-btn{background:var(--dark);color:#fff;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700;font-family:'Outfit',sans-serif;font-size:15px;display:inline-block;transition:.2s}
+    .empty-btn:hover{background:var(--green)}
+
+    /* SUCCESS MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .modal-overlay.show{display:flex}
+    .modal{
+      background:#fff;border-radius:28px;padding:44px 36px;
+      text-align:center;max-width:420px;width:92%;
+      box-shadow:0 24px 80px rgba(0,0,0,.3);
+      animation:modalPop .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes modalPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+    .modal-icon{font-size:68px;margin-bottom:14px;display:block}
+    .modal-title{font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;color:var(--dark);margin-bottom:8px}
+    .modal-sub{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:6px}
+    .order-code-box{background:var(--lg);border:2px dashed var(--green);border-radius:18px;padding:20px;margin:18px 0}
+    .ocb-label{font-size:11px;color:var(--green);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+    .ocb-code{font-family:'DM Mono',monospace;font-size:38px;font-weight:700;color:var(--dark);letter-spacing:4px}
+    .modal-note{font-size:12px;color:#9ca3af;margin-bottom:22px}
+    .modal-btn{display:block;background:var(--dark);color:#fff;padding:15px;border-radius:50px;font-size:15px;font-weight:700;text-decoration:none;font-family:'Outfit',sans-serif;transition:.2s;margin-bottom:10px}
+    .modal-btn:hover{background:var(--green)}
+    .modal-btn-secondary{display:block;color:var(--muted);font-size:14px;cursor:pointer;border:none;background:none;font-family:inherit;width:100%;padding:8px}
+    .modal-btn-secondary:hover{color:var(--dark)}
+
+    /* UPI Modal */
+    .upi-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .upi-modal-overlay.show{display:flex}
+    .upi-modal{background:#fff;border-radius:28px;padding:36px;max-width:400px;width:92%;box-shadow:0 24px 80px rgba(0,0,0,.3);animation:modalPop .35s cubic-bezier(.34,1.56,.64,1)}
+    .upi-modal-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px;text-align:center}
+    .upi-modal-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px}
+    .upi-amount{font-family:'Outfit',sans-serif;font-size:36px;font-weight:900;color:var(--green);text-align:center;margin-bottom:20px}
+
+    .upi-divider{text-align:center;color:#d1d5db;font-size:12px;margin:4px 0 16px;position:relative}
+    .upi-divider::before,.upi-divider::after{content:'';position:absolute;top:50%;width:44%;height:1px;background:#e5e7eb}
+    .upi-divider::before{left:0}.upi-divider::after{right:0}
+    .upi-vpa-row{display:flex;gap:8px}
+    .upi-vpa-input{flex:1;padding:11px;border:2px solid var(--border);border-radius:11px;font-size:13px;font-family:inherit;background:var(--cream)}
+    .upi-vpa-input:focus{outline:none;border-color:var(--green)}
+    .upi-pay-btn{padding:11px 18px;background:var(--green);color:#fff;border:none;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;transition:.2s;white-space:nowrap}
+    .upi-pay-btn:hover{background:var(--dark)}
+    .upi-cancel{display:block;text-align:center;margin-top:14px;color:var(--muted);font-size:13px;cursor:pointer;border:none;background:none;font-family:inherit;width:100%}
+
+    @media(max-width:700px){
+      .cart-layout{grid-template-columns:1fr}
+      .summary-box{position:static}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">
+    <div class="nav-logo">🍛</div>
+    <div class="nav-name">D<em>M</em>I</div>
+  </a>
+  <a href="menu.html" class="nav-back">← Back to Menu</a>
+</nav>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <span class="modal-icon">🎉</span>
+    <div class="modal-title">Order Placed!</div>
+    <p class="modal-sub">Your food is being freshly prepared.<br/>Save this code to track your order:</p>
+    <div class="order-code-box">
+      <div class="ocb-label">📌 Your Order Code</div>
+      <div class="ocb-code" id="orderCodeDisplay">DMI-0000</div>
+    </div>
+    <p class="modal-note">Admin can see your order live right now!</p>
+    <a href="tracker.html" class="modal-btn">Track My Order →</a>
+    <button class="modal-btn-secondary" onclick="viewBill()">View Bill</button>
+  </div>
+</div>
+
+
+
+<div class="page">
+  <h1 class="page-title">Your Cart 🛒</h1>
+  <div id="cartWrap"></div>
+</div>
+
+<script>
+  const firebaseConfig={
+    apiKey:"AIzaSyDNcfNUTbuq6rkH8qKDQyH-OGDEyGZivyM",
+    authDomain:"drs-canteen.firebaseapp.com",
+    projectId:"drs-canteen",
+    storageBucket:"drs-canteen.firebasestorage.app",
+    messagingSenderId:"44103188304",
+    appId:"1:44103188304:web:e383bc8c02f4baec923655",
+    measurementId:"G-6QS5KJN18Y",
+    databaseURL:"https://drs-canteen-default-rtdb.firebaseio.com"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var db=firebase.database();
+
+  var user=JSON.parse(localStorage.getItem('drs_user')||'null');
+  if(!user){window.location.href='auth.html'}
+  var cart=JSON.parse(localStorage.getItem('drs_cart')||'[]');
+  var discount=0,couponCode='',payMethod='cod',currentOrderCode='';
+  var COUPONS={DMI10:10,DMI20:20,DRS10:10,DRS20:20,WELCOME:15};
+
+  function render(){
+    var el=document.getElementById('cartWrap');
+    if(!cart.length){
+      el.innerHTML='<div class="empty"><div class="empty-emoji">🛒</div><h2>Your cart is empty!</h2><p>Add some delicious Tamil food to get started.</p><a href="menu.html" class="empty-btn">Browse Menu →</a></div>';
+      return;
+    }
+    var sub=cart.reduce(function(s,x){return s+x.price*x.qty},0);
+    var total=Math.max(0,sub-discount);
+
+    var itemsHtml=cart.map(function(it){
+      var visual = it.img ? '<img src="'+it.img+'" style="width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0"/>' : '<div class="ci-emoji">'+it.emoji+'</div>';
+      return `<div class="cart-item">
+        ${visual}
+        <div class="ci-info"><div class="ci-name">${it.name}</div><div class="ci-price">₹${it.price} each</div></div>
+        <div class="ci-controls">
+          <button class="qty-btn" onclick="chg('${it.id}',-1)">−</button>
+          <span class="qty-num">${it.qty}</span>
+          <button class="qty-btn" onclick="chg('${it.id}',1)">+</button>
+        </div>
+        <div class="ci-line-total">₹${it.price*it.qty}</div>
+        <button class="ci-rm" onclick="rm('${it.id}')" title="Remove">✕</button>
+        </div>`;
+    }).join('');
+
+    var discHtml=discount>0
+      ?'<div class="summary-row discount"><span>Coupon ('+couponCode+')</span><span>−₹'+discount+'</span></div>'
+      :'';
+
+    var couponActiveHtml=couponCode
+      ?'<div class="coupon-tag">🏷️ '+couponCode+' applied <button onclick="removeCoupon()">×</button></div>'
+      :'<div class="coupon-row"><input class="coupon-input" id="cInput" placeholder="COUPON CODE"/><button class="coupon-btn" onclick="applyCoupon()">Apply</button></div>'
+       +'<div class="coupon-msg" id="cMsg"></div>'
+       +'<div class="coupon-hint">Try: DMI10 · DMI20 · WELCOME</div>';
+
+    el.innerHTML=
+      '<div class="cart-layout">'
+        +'<div class="cart-box">'
+          +'<div class="cart-box-title">'+cart.length+' Item(s)</div>'
+          +itemsHtml
+        +'</div>'
+        +'<div class="summary-box">'
+          +'<div class="summary-title">Order Summary</div>'
+          +'<div class="summary-row"><span>Subtotal</span><span>₹'+sub+'</span></div>'
+          +discHtml
+          +'<div class="summary-divider"></div>'
+          +'<div class="summary-total"><span>Total</span><span>₹'+total+'</span></div>'
+          +'<div class="coupon-section"><span class="coupon-label">🎟️ Coupon Code</span>'+couponActiveHtml+'</div>'
+          +'<div class="pay-section">'
+            +'<span class="pay-label">💳 Payment Method</span>'
+            +'<div class="pay-options">'
+              +'<div class="pay-opt '+(payMethod==='cod'?'selected':'')+'" onclick="selectPay(\'cod\')" id="payOptCod">'
+                +'<div class="pay-opt-icon">💵</div>'
+                +'<div class="pay-opt-label">Cash</div>'
+                +'<div class="pay-opt-sub">Counter</div>'
+              +'</div>'
+              +'<div class="pay-opt '+(payMethod==='online'?'selected':'')+'" onclick="selectPay(\'online\')" id="payOptOnline">'
+                +'<div class="pay-opt-icon">💳</div>'
+                +'<div class="pay-opt-label">Razorpay</div>'
+                +'<div class="pay-opt-sub">Real-Time Pay</div>'
+              +'</div>'
+            +'</div>'
+          +'</div>'
+          +'<button class="place-btn" id="placeBtn" onclick="handlePlace()">Place Order →</button>'
+        +'</div>'
+      +'</div>';
+  }
+
+  function chg(id,d){
+    var i=cart.findIndex(function(x){return x.id===id});
+    if(i<0)return;
+    cart[i].qty+=d;
+    if(cart[i].qty<=0)cart.splice(i,1);
+    save();
+  }
+  function rm(id){cart=cart.filter(function(x){return x.id!==id});save()}
+  function save(){localStorage.setItem('drs_cart',JSON.stringify(cart));render()}
+  function selectPay(m){payMethod=m;render()}
+
+  function applyCoupon(){
+    var c=(document.getElementById('cInput').value||'').trim().toUpperCase();
+    var msg=document.getElementById('cMsg');
+    if(!c){if(msg){msg.textContent='Enter a coupon code';msg.className='coupon-msg coupon-err'};return}
+    if(COUPONS[c]){
+      couponCode=c;discount=COUPONS[c];
+      render();
+    } else {
+      couponCode='';discount=0;
+      if(msg){msg.textContent='❌ Invalid coupon code';msg.className='coupon-msg coupon-err'}
+    }
+  }
+  function removeCoupon(){couponCode='';discount=0;render()}
+
+  function handlePlace(){
+    if(!cart.length)return;
+    if(payMethod==='online'){
+      handleRazorpay();
+    } else if(payMethod==='cod') {
+      placeOrder('cod');
+    }
+  }
+
+  function handleRazorpay(){
+    var sub=cart.reduce(function(s,x){return s+x.price*x.qty},0);
+    var total=Math.max(0,sub-discount);
+    
+    var options = {
+      "key": "rzp_test_SYSh7FU8tidKTo", // Razorpay Test Key
+      "amount": total * 100, // Razorpay takes amount in paise
+      "currency": "INR",
+      "name": "DMI Canteen",
+      "description": "Food Order Payment",
+      "image": "https://cdn-icons-png.flaticon.com/512/3170/3170733.png",
+      "handler": function (response){
+        // Success callback
+        placeOrder('razorpay', response.razorpay_payment_id);
+      },
+      "prefill": {
+        "name": user.name,
+        "email": user.email
+      },
+      "theme": { "color": "#1a7a45" }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.open();
+  }
+
+
+  function placeOrder(method, payId){
+    if(!cart.length)return;
+    var sub=cart.reduce(function(s,x){return s+x.price*x.qty},0);
+    var total=Math.max(0,sub-discount);
+    var code='DMI-'+Math.floor(1000+Math.random()*9000);
+    currentOrderCode=code;
+    var order={
+      code:code,userName:user.name,userEmail:user.email,userId:user.id,
+      items:cart,subtotal:sub,discount:discount,total:total,
+      payMethod:method,paymentId:payId||null,status:'Placed',
+      time:new Date().toLocaleString(),timestamp:Date.now()
+    };
+    db.ref('orders/'+code).set(order,function(err){
+      if(err){alert('Error placing order. Please check your connection.');return}
+      localStorage.setItem('drs_last_order',code);
+      localStorage.setItem('drs_cart',JSON.stringify([]));
+      cart=[];
+      document.getElementById('orderCodeDisplay').textContent=code;
+      document.getElementById('successModal').classList.add('show');
+    });
+  }
+  function viewBill(){
+    window.location.href='bill.html?code='+currentOrderCode;
+  }
+
+  render();
+</script>
+</body>
+</html>
